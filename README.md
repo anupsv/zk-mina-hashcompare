@@ -2,25 +2,14 @@
 
 This template uses TypeScript.
 
-## How to build
+## How to deploy
 
-```sh
-npm run build
+```zk config
 ```
 
-## How to run tests
-
-```sh
-npm run test
-npm run testw # watch mode
+```zk deploy testnet_name
+```
+```npm run build && node build/src/main.js testnet_name
 ```
 
-## How to run coverage
 
-```sh
-npm run coverage
-```
-
-## License
-
-[Apache-2.0](LICENSE)
