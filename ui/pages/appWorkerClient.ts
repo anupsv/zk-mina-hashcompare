@@ -26,6 +26,9 @@ export default class AppWorkerClient {
   compileContract() {
     return this._call('compileContract', {});
   }
+  createTransactionWithWallet() {
+    return this._call('createTransactionWithWallet', {});
+  }
 
   fetchAccount({ publicKey }: { publicKey: PublicKey }): ReturnType<typeof fetchAccount> {
     const result = this._call('fetchAccount', { publicKey58: publicKey.toBase58() });

@@ -53,16 +53,34 @@ const functions = {
   createUpdateTransaction: async (args: { feePayerPrivateKey58: string, transactionFee: number }) => {
     const feePayerKey = PrivateKey.fromBase58(args.feePayerPrivateKey58);
     const transaction = await Mina.transaction(
-      { feePayerKey, fee: args.transactionFee },
-      () => {
-        state.zkapp!.update();
-      }
+        { feePayerKey, fee: args.transactionFee },
+        () => {
+          state.zkapp!.update();
+        }
     );
     state.transaction = transaction;
   },
+
+  createTransactionWithWallet: async (args: {}) => {
+    console.log("creating tx")
+    const transaction = await Mina.transaction(() => {
+          state.zkapp!.update();
+        }
+    );
+
+    console.log("prooving tx")
+
+    await transaction!.prove();
+
+    console.log("return json tx")
+
+    return transaction.toJSON();
+  },
+
   proveUpdateTransaction: async (args: {}) => {
     await state.transaction!.prove();
   },
+
   sendUpdateTransaction: async (args: {}) => {
     var txn_res = await state.transaction!.send();
     const transactionHash = await txn_res!.hash();

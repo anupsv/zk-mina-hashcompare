@@ -1,10 +1,10 @@
 import '../styles/globals.css'
 import React, {useEffect, useState} from "react";
 
-import {Field, PrivateKey, PublicKey,} from 'snarkyjs'
+import {Field, Mina, PrivateKey, PublicKey,} from 'snarkyjs'
 
 import AppWorkerClient from './appWorkerClient';
-import Notification from './Notification';
+import Votes from './Votes';
 
 
 import './reactCOIServiceWorker';
@@ -14,6 +14,7 @@ let transactionFee = 100_000_000;
 export default function App() {
   let [appLoadingState, setAppLoadingState] = useState("....");
   let [minaAccount, setMinaAccount] = useState();
+  let [votes, setVotes] = useState(0);
   let [state, setState] = useState({
     zkappWorkerClient: null as null | AppWorkerClient,
     hasBeenSetup: false,
@@ -77,22 +78,22 @@ export default function App() {
   // -------------------------------------------------------
   // Wait for account to exist, if it didn't
 
-  useEffect(() => {
-    (async () => {
-      if (state.hasBeenSetup && !state.accountExists) {
-        for (;;) {
-          setAppLoadingState('checking if account exists...');
-          const res = await state.zkappWorkerClient!.fetchAccount({ publicKey: state.publicKey! })
-          const accountExists = res.error == null;
-          if (accountExists) {
-            break;
-          }
-          await new Promise((resolve) => setTimeout(resolve, 5000));
-        }
-        setState({ ...state, accountExists: true });
-      }
-    })();
-  }, [state.hasBeenSetup]);
+  // useEffect(() => {
+  //   (async () => {
+  //     if (state.hasBeenSetup && !state.accountExists) {
+  //       for (;;) {
+  //         setAppLoadingState('checking if account exists...');
+  //         const res = await state.zkappWorkerClient!.fetchAccount({ publicKey: state.publicKey! })
+  //         const accountExists = res.error == null;
+  //         if (accountExists) {
+  //           break;
+  //         }
+  //         await new Promise((resolve) => setTimeout(resolve, 5000));
+  //       }
+  //       setState({ ...state, accountExists: true });
+  //     }
+  //   })();
+  // }, [state.hasBeenSetup]);
 
   // -------------------------------------------------------
   // Send a transaction
@@ -103,18 +104,35 @@ export default function App() {
 
     await state.zkappWorkerClient!.fetchAccount({ publicKey: state.publicKey! });
 
-    await state.zkappWorkerClient!.createUpdateTransaction(state.privateKey!, transactionFee);
+    // await state.zkappWorkerClient!.createUpdateTransaction(state.privateKey!, transactionFee);
 
-    setAppLoadingState('creating proof...');
-    await state.zkappWorkerClient!.proveUpdateTransaction();
+    let transactionJson = await state.zkappWorkerClient!.createTransactionWithWallet();
+    console.log(transactionJson);
+    let partyResult = await window.mina.sendTransaction({
+      transaction: transactionJson,
+      feePayer: {
+        memo: "",
+        fee: 0.1
+      },
+    }).catch(err => err)
 
-    const transactionHash = await state.zkappWorkerClient!.sendUpdateTransaction();
-
-    if (!transactionHash) {
-      setAppLoadingState(
-          'See transaction here https://berkeley.minaexplorer.com/transaction/' + transactionHash
-      );
+    if (partyResult.message == 'user reject'){
+      alert("User rejected Signature");
+    }else {
+      alert(`Hash of the tx : ${partyResult.hash}`);
     }
+    // setAppLoadingState('creating proof...');
+    // await state.zkappWorkerClient!.proveUpdateTransaction();
+
+    // const transactionHash = await state.zkappWorkerClient!.sendUpdateTransaction();
+
+    // if (!transactionHash) {
+    //   setAppLoadingState(
+    //       'See transaction here https://berkeley.minaexplorer.com/transaction/' + transactionHash
+    //   );
+
+    // alert(txjson);
+    setVotes(1);
     setState({ ...state, creatingTransaction: false });
   }
 
@@ -134,6 +152,7 @@ export default function App() {
     } else {
       let approveAccount = await window.mina.requestAccounts().catch(err => err);
       setMinaAccount(approveAccount);
+      alert(`connected with auro wallet with account ${approveAccount}`)
       }
   }
 
@@ -154,15 +173,21 @@ export default function App() {
 
   return <div>
    {!state.hasBeenSetup ? setup : ""}
-   { state.hasBeenSetup && !state.accountExists ? "You need more funds ..." : "" }
-    {<Notification message={appLoadingState} />}
+    {/*{<Notification message={appLoadingState} />}*/}
+    {/*{ true? <div>*/}
     { state.hasBeenSetup && state.accountExists? <div>
-     <button className={"button-29"} onClick={onSendTransaction} disabled={state.creatingTransaction}> Send Transaction </button>
-     <div> Current Number in app: { state.currentNum!.toString() } </div>
-     <button onClick={refreshCurrentNum}> Get Latest State </button>
+     {/*<div> Current Number in app: { state.currentNum!.toString() } </div>*/}
+     {/*<button onClick={refreshCurrentNum}> Get Latest State </button>*/}
+      <div className={"centered"}><br/>DAO Proposal 1: DAO will never disclose users. <br/>Votes: <Votes message={votes} />
+        <br/><br/><br/>
+        <div><br/>&nbsp;&nbsp;&nbsp;&nbsp;<button className={"button-29"} onClick={onSendTransaction} disabled={state.creatingTransaction}> Vote </button></div>
+      </div>
+      <div className={"offcentered"}><br/>DAO Proposal 2: DAO will have more features in the future. <br/>Votes: 2
+        <br/><br/><br/>
+        <div><br/>&nbsp;&nbsp;&nbsp;&nbsp;<button className={"button-29"} onClick={onSendTransaction} disabled={state.creatingTransaction}> Vote </button></div>
+      </div>
    </div> : "" }
     <button onClick={connectWallet}> Connect </button>
-
   </div>
 }
 
